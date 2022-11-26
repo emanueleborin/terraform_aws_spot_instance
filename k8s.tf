@@ -1,5 +1,5 @@
 variable "ssh_key_name" {default = "YOUR_KEY_NAME_HERE"}
-variable "aws_region_name" { default = "us-west-2" }
+variable "aws_region_name" { default = "eu-west-1" }
 
 provider "aws" {
   # Use keys in home dir.
@@ -34,7 +34,7 @@ data "aws_ami" "ubuntu" {
 # Master Node
 resource "aws_spot_instance_request" "k8s-master" {
   wait_for_fulfillment = true
-  count         = "1"
+  #count         = "1"
   ami           = "${data.aws_ami.ubuntu.id}"
   spot_price    = "0.01"
   instance_type = "m3.medium"
@@ -44,11 +44,29 @@ resource "aws_spot_instance_request" "k8s-master" {
 
   key_name = "${var.ssh_key_name}"
 
-  tags {
-    Name   = "k8s-worker"
+  # not working
+  tags = {
+    Name   = "k8s-master"
     App    = "k8s"
     k8srole = "master"
   }
+}
+
+# workaround to set tags on spot instances (instance tas not supported by spot instance request api)
+resource "aws_ec2_tag" "k8s-master-name" {
+  resource_id = aws_spot_instance_request.k8s-master.spot_instance_id
+  key         = "Name"
+  value       = "k8s-master"
+}
+resource "aws_ec2_tag" "k8s-master-app" {
+  resource_id = aws_spot_instance_request.k8s-master.spot_instance_id
+  key         = "App"
+  value       = "k8s"
+}
+resource "aws_ec2_tag" "k8s-master-k8srole" {
+  resource_id = aws_spot_instance_request.k8s-master.spot_instance_id
+  key         = "k8srole"
+  value       = "master"
 }
 
 # Worker Nodes
@@ -64,11 +82,32 @@ resource "aws_spot_instance_request" "k8s-worker" {
 
   key_name = "${var.ssh_key_name}"
 
-  tags {
+  # not working
+  tags = {
     Name   = "k8s-worker"
     App    = "k8s"
     k8srole = "worker"
   }
+}
+
+# workaround to set tags on spot instances (instance tags not supported by spot instance request api)
+resource "aws_ec2_tag" "k8s-worker-name" {
+  count       = length(aws_spot_instance_request.k8s-worker)
+  resource_id = aws_spot_instance_request.k8s-worker[count.index].spot_instance_id
+  key         = "Name"
+  value       = "k8s-worker"
+}
+resource "aws_ec2_tag" "k8s-worker-app" {
+  count       = length(aws_spot_instance_request.k8s-worker)
+  resource_id = aws_spot_instance_request.k8s-worker[count.index].spot_instance_id
+  key         = "App"
+  value       = "k8s"
+}
+resource "aws_ec2_tag" "k8s-worker-k8srole" {
+  count       = length(aws_spot_instance_request.k8s-worker)
+  resource_id = aws_spot_instance_request.k8s-worker[count.index].spot_instance_id
+  key         = "k8srole"
+  value       = "worker"
 }
 
 resource "aws_security_group" "k8s_sg" {
