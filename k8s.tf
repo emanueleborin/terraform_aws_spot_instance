@@ -19,7 +19,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
   }
 
   filter {
@@ -37,14 +37,14 @@ resource "aws_spot_instance_request" "k8s-master" {
   #count         = "1"
   ami           = "${data.aws_ami.ubuntu.id}"
   spot_price    = "0.01"
-  instance_type = "m3.medium"
+  instance_type = "t3.small"
   spot_type     = "one-time"
 
   vpc_security_group_ids = ["${aws_security_group.k8s_sg.id}"]
 
   key_name = "${var.ssh_key_name}"
 
-  # not working
+  # tagging only spot request, not instances
   tags = {
     Name   = "k8s-master"
     App    = "k8s"
@@ -75,14 +75,14 @@ resource "aws_spot_instance_request" "k8s-worker" {
   count         = "2"
   ami           = "${data.aws_ami.ubuntu.id}"
   spot_price    = "0.01"
-  instance_type = "m3.medium"
+  instance_type = "t3.small"
   spot_type     = "one-time"
 
   vpc_security_group_ids = ["${aws_security_group.k8s_sg.id}"]
 
   key_name = "${var.ssh_key_name}"
 
-  # not working
+  # tagging only spot request, not instances
   tags = {
     Name   = "k8s-worker"
     App    = "k8s"
@@ -110,9 +110,7 @@ resource "aws_ec2_tag" "k8s-worker-k8srole" {
   value       = "worker"
 }
 
-resource "aws_security_group" "k8s_sg" {
-
-}
+resource "aws_security_group" "k8s_sg" {}
 
 resource "aws_security_group_rule" "allow_all_egress" {
   type            = "egress"
@@ -124,7 +122,6 @@ resource "aws_security_group_rule" "allow_all_egress" {
 
   security_group_id = "${aws_security_group.k8s_sg.id}"
 }
-
 
 resource "aws_security_group_rule" "allow_all_myip" {
   type            = "ingress"
