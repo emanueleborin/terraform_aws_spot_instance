@@ -29,3 +29,6 @@ https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html
 ### Changes and fixes
 
 1. Added `aws_ec2_tag` resources to tag spot instances, as spot request api doesn't tag instances
+1. Added helper script to get an Ansible inventory:
+   `./ansible-inventory.sh >../ansible-k8s-setup-kubeadm/inventory`
+1. ...
